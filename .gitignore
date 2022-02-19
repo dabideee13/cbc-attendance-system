@@ -1,10 +1,5 @@
-data/
-data/dept.csv
-data/raw/
-data/processed/
-data
-data/raw
-data/processed
+*.csv
+*.xlsx
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
