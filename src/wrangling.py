@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 from typing import Union
 
+import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font
 
@@ -9,20 +10,24 @@ DATA_PATH = Path.joinpath(Path.cwd(), "data")
 RAW_PATH = Path.joinpath(DATA_PATH, "raw")
 PROCESSED_PATH = Path.joinpath(DATA_PATH, "processed")
 
-SAMPLE = "Attendance Report for Covenant Baptist Church Iligan - Datang (1.16.2022).xlsx"
-SAMPLE = "Attendance Report for Covenant Baptist Church Iligan - Datang(12.19.2021).xlsx"
+
+def extract_initial(name: str) -> str:
+    components = name.split()
+
+    for comp in components:
+        if comp.endswith(".") and (comp.lower() != "jr.") and (comp.lower() != "sr."):
+            return comp
+
+    return ""
+
+
+def clean_name(name: str) -> str:
+    name = name.replace(extract_initial(name), "")
+    return re.sub(r" +", " ", name)
+
 
 def get_all_files(path: Union[str, Path]) -> list[Path]:
     return list(Path(path).glob("*.xlsx"))
-
-
-# def extract_date(filename: str) -> str:
-#     pattern = r"(?<=\()(.*?)(?=\))"
-#     return re.search(pattern, filename).group()
-
-sample2 = "12.5.2022"
-sample = "1.12.2021"
-sample3 = "1.5.2022"
 
 
 def extract_date(filename: str) -> str:
@@ -48,6 +53,22 @@ def format_name(filename: str) -> str:
     return f"{name} - {format_date(extract_date(filename))}" + Path(filename).suffix
 
 
+def to_dict(df: pd.DataFrame) -> dict[str, str]:
+    return {
+        df.loc[index, "Name"]: df.loc[index, "Dept"]
+        for index in range(len(df))
+    }
+
+
+def mapper(name: str, dept_dict: dict[str, str]) -> str:
+    try:
+        return dept_dict[name]
+
+    except KeyError:
+        dept_dict[name] = ""
+        return dept_dict[name]
+
+
 def wrangle(in_file: Union[str, Path], out_file: Union[str, Path]) -> None:
 
     wb = load_workbook(in_file)
@@ -68,7 +89,22 @@ def wrangle(in_file: Union[str, Path], out_file: Union[str, Path]) -> None:
             attendance = sheet.cell(row, 5)
             attendance.value = "Absent"
 
-    wb.save(out_file)
+    df = pd.DataFrame(sheet.values)
+    df = (
+        df
+        .rename(columns=df.iloc[1])
+        .drop(df.index[:2])
+        .reset_index()
+        .drop("index", axis=1)
+    )
+    df.Name = df.Name.apply(clean_name)
+
+    file_dept = Path.joinpath(Path.cwd(), "data", "dept.csv")
+    df_dept = pd.read_csv(file_dept)
+    dept_dict = to_dict(df_dept)
+
+    df["Department"] = df.Name.apply(lambda x: mapper(x, dept_dict))
+    df.to_excel(out_file, index=False)
 
 
 def main():
