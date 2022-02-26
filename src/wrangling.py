@@ -53,11 +53,25 @@ def format_name(filename: str) -> str:
     return f"{name} - {format_date(extract_date(filename))}" + Path(filename).suffix
 
 
-def to_dict(df: pd.DataFrame) -> dict[str, str]:
+def dept_dict(df: pd.DataFrame) -> dict[str, str]:
     return {
         df.loc[index, "Name"]: df.loc[index, "Dept"]
         for index in range(len(df))
     }
+
+
+def age_dict(df: pd.DataFrame) -> dict[str, str]:
+    return {
+        df.loc[index, "Name"]: df.loc[index, "Age"]
+        for index in range(len(df))
+    }
+
+
+def gender_dict(df: pd.DataFrame) -> dict[str, str]:
+    return {
+        df.loc[index, "Name"]: df.loc[index, "Gender"]
+        for index in range(len(df))
+    }    
 
 
 def mapper(name: str, dept_dict: dict[str, str]) -> str:
@@ -101,9 +115,18 @@ def wrangle(in_file: Union[str, Path], out_file: Union[str, Path]) -> None:
 
     file_dept = Path.joinpath(Path.cwd(), "data", "dept.csv")
     df_dept = pd.read_csv(file_dept)
-    dept_dict = to_dict(df_dept)
+    dept_values = dept_dict(df_dept)
+    age_values = age_dict(df_dept)
+    gender_values = gender_dict(df_dept)
+    
+    
+    df["Department"] = df.Name.apply(lambda x: mapper(x, dept_values))
+    df.to_excel(out_file, index=False)
 
-    df["Department"] = df.Name.apply(lambda x: mapper(x, dept_dict))
+    df["Age"] = df.Name.apply(lambda x: mapper(x, age_values))
+    df.to_excel(out_file, index=False)
+
+    df["Gender"] = df.Name.apply(lambda x: mapper(x, gender_values))
     df.to_excel(out_file, index=False)
 
 
