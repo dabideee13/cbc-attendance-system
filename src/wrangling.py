@@ -6,6 +6,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font
 
+
 DATA_PATH = Path.joinpath(Path.cwd(), "data")
 RAW_PATH = Path.joinpath(DATA_PATH, "raw")
 PROCESSED_PATH = Path.joinpath(DATA_PATH, "processed")
@@ -71,7 +72,7 @@ def gender_dict(df: pd.DataFrame) -> dict[str, str]:
     return {
         df.loc[index, "Name"]: df.loc[index, "Gender"]
         for index in range(len(df))
-    }    
+    }
 
 
 def mapper(name: str, dept_dict: dict[str, str]) -> str:
@@ -118,8 +119,7 @@ def wrangle(in_file: Union[str, Path], out_file: Union[str, Path]) -> None:
     dept_values = dept_dict(df_dept)
     age_values = age_dict(df_dept)
     gender_values = gender_dict(df_dept)
-    
-    
+
     df["Department"] = df.Name.apply(lambda x: mapper(x, dept_values))
     df.to_excel(out_file, index=False)
 
